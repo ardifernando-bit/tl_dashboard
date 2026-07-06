@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Third-Party Collection — TL Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0F1417;
+  --panel:#171D22;
+  --panel-2:#1D242B;
+  --panel-3:#141A1F;
+  --border:#2A3138;
+  --border-soft:#232A30;
+  --text:#E8EDF0;
+  --muted:#8B98A3;
+  --muted-2:#5E6870;
+  --amber:#E8A33D;   /* DLQ */
+  --orange:#E2672B;  /* NPL */
+  --crimson:#C23B3B; /* WO */
+  --teal:#4FB286;
+  --teal-dim:#2F6B54;
+  --teal-bg:rgba(79,178,134,0.12);
+  --red-bg:rgba(194,59,59,0.12);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--ink);
+  color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--teal-dim);color:#fff;}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0;letter-spacing:-0.01em;}
+a{color:var(--teal);}
+
+/* ---------- Header ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;
+  background:linear-gradient(180deg,var(--ink) 80%,transparent);
+  border-bottom:1px solid var(--border);
+  padding:18px 28px 14px;
+}
+.topbar-inner{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;}
+.brand-eyebrow{
+  color:var(--muted-2);font-family:'IBM Plex Mono',monospace;font-size:11px;
+  letter-spacing:0.14em;text-transform:uppercase;margin-bottom:4px;
+}
+.brand-title{font-size:24px;font-weight:700;color:var(--text);}
+.brand-title .accent{color:var(--teal);}
+.brand-sub{color:var(--muted);font-size:12.5px;margin-top:3px;}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+.btn{
+  font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+  padding:9px 14px;border-radius:6px;border:1px solid var(--border);
+  background:var(--panel-2);color:var(--text);cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;transition:border-color .15s,background .15s;
+  white-space:nowrap;
+}
+.btn:hover{border-color:var(--muted-2);}
+.btn-primary{background:var(--teal-bg);border-color:var(--teal-dim);color:var(--teal);}
+.btn-primary:hover{background:rgba(79,178,134,0.2);}
+.btn svg{width:13px;height:13px;}
+#file-input{display:none;}
+
+/* ---------- Filter bar ---------- */
+.filterbar{
+  position:sticky;top:76px;z-index:35;
+  background:var(--panel-3);
+  border-bottom:1px solid var(--border);
+  padding:12px 28px;
+}
+.filterbar-inner{max-width:1400px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.filter-label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-2);text-transform:uppercase;letter-spacing:0.1em;margin-right:2px;}
+.msel{position:relative;}
+.msel-btn{
+  font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;
+  padding:7px 11px;border-radius:6px;border:1px solid var(--border);
+  background:var(--panel);color:var(--text);cursor:pointer;min-width:118px;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+.msel-btn:hover{border-color:var(--muted-2);}
+.msel-btn.active-filter{border-color:var(--teal-dim);color:var(--teal);}
+.msel-panel{
+  display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:50;
+  background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
+  min-width:190px;max-height:280px;overflow-y:auto;padding:6px;
+  box-shadow:0 12px 28px rgba(0,0,0,0.45);
+}
+.msel.open .msel-panel{display:block;}
+.msel-opt{
+  display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;
+  font-size:12.5px;cursor:pointer;
+}
+.msel-opt:hover{background:var(--panel-3);}
+.msel-opt input{accent-color:var(--teal);}
+.msel-all{
+  font-size:11px;color:var(--muted);text-decoration:underline;cursor:pointer;
+  padding:4px 8px;display:inline-block;
+}
+.search-box{
+  flex:1;min-width:180px;max-width:280px;
+  padding:7px 11px;border-radius:6px;border:1px solid var(--border);
+  background:var(--panel);color:var(--text);font-family:'Inter',sans-serif;font-size:12.5px;
+}
+.search-box::placeholder{color:var(--muted-2);}
+.clear-filters{margin-left:auto;font-size:11.5px;color:var(--muted);cursor:pointer;text-decoration:underline;}
+.clear-filters:hover{color:var(--text);}
+
+/* ---------- Layout ---------- */
+main{max-width:1400px;margin:0 auto;padding:26px 28px 60px;}
+section{margin-bottom:34px;}
+.section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
+.section-head h2{font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;}
+.section-num{font-family:'IBM Plex Mono',monospace;color:var(--muted-2);font-size:12px;}
+.section-note{color:var(--muted);font-size:12px;}
+
+/* signature: severity ramp */
+.ramp{display:inline-flex;gap:3px;vertical-align:middle;}
+.ramp i{width:5px;height:12px;border-radius:1px;display:inline-block;}
+
+/* KPI cards */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.kpi-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:16px 16px 14px;position:relative;overflow:hidden;
+}
+.kpi-card::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--kpi-accent,var(--teal));
+}
+.kpi-label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-top:6px;color:var(--text);}
+.kpi-sub{font-size:11px;color:var(--muted-2);margin-top:4px;}
+
+/* Panels / grid */
+.grid-2{display:grid;grid-template-columns:1.1fr 1.4fr;gap:16px;align-items:start;}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.panel-head{padding:13px 16px;border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center;}
+.panel-head h3{font-size:13px;font-weight:600;}
+.panel-body{padding:12px 16px 16px;}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{
+  text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.05em;padding:8px 10px;border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;white-space:nowrap;
+}
+th:hover{color:var(--text);}
+th.sorted{color:var(--teal);}
+th .arrow{font-size:9px;margin-left:2px;}
+td{padding:8px 10px;border-bottom:1px solid var(--border-soft);white-space:nowrap;}
+tr.data-row{position:relative;}
+tr.data-row td:first-child{border-left:3px solid var(--row-accent,transparent);}
+tbody tr:hover{background:var(--panel-2);}
+.num{font-family:'IBM Plex Mono',monospace;text-align:right;}
+.tag{
+  font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:2px 7px;border-radius:4px;
+  display:inline-block;font-weight:600;
+}
+.tag-dlq{background:rgba(232,163,61,0.14);color:var(--amber);}
+.tag-npl{background:rgba(226,103,43,0.14);color:var(--orange);}
+.tag-wo{background:rgba(194,59,59,0.14);color:var(--crimson);}
+.rate-good{color:var(--teal);}
+.rate-bad{color:var(--crimson);}
+.table-scroll{max-height:420px;overflow-y:auto;}
+.table-scroll table{position:relative;}
+.table-scroll thead th{position:sticky;top:0;background:var(--panel);z-index:5;}
+
+/* mini bars */
+.bar-track{background:var(--panel-3);border-radius:3px;height:6px;width:100%;overflow:hidden;position:relative;}
+.bar-fill{height:100%;border-radius:3px;background:var(--teal);}
+
+/* MoM */
+.mom-controls{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.mom-controls select{
+  background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:6px;
+  padding:7px 10px;font-family:'Inter',sans-serif;font-size:12.5px;
+}
+.delta-up{color:var(--crimson);}
+.delta-down{color:var(--teal);}
+.delta-flat{color:var(--muted);}
+.toggle-group{display:flex;gap:6px;background:var(--panel-3);padding:3px;border-radius:7px;border:1px solid var(--border);}
+.toggle-btn{
+  padding:5px 11px;border-radius:5px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--muted);
+}
+.toggle-btn.active{background:var(--panel-2);color:var(--teal);}
+
+/* empty state */
+.empty-state{
+  padding:40px 20px;text-align:center;color:var(--muted);font-size:13px;
+}
+.empty-state .ramp{margin-bottom:10px;justify-content:center;display:flex;}
+
+footer{
+  max-width:1400px;margin:0 auto;padding:0 28px 40px;color:var(--muted-2);font-size:11px;
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+}
+
+@media (max-width:980px){
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+  .grid-2{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div>
+      <div class="brand-eyebrow">Third-Party Collections · Claim &amp; Fee Ledger</div>
+      <h1 class="brand-title">TL Performance <span class="accent">Console</span></h1>
+      <div class="brand-sub">Recovery, fee load and month-over-month tracking across every agency you handle</div>
+    </div>
+    <div class="topbar-actions">
+      <input type="file" id="file-input" accept=".csv" multiple>
+      <button class="btn" id="btn-upload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+        Upload CSV
+      </button>
+      <button class="btn" id="btn-export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 12l-4-4m4 4l4-4M4 17v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+        Export filtered
+      </button>
+      <button class="btn" id="btn-reset" title="Clear uploaded data, keep original file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+        Reset data
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="filterbar">
+  <div class="filterbar-inner" id="filterbar-inner">
+    <!-- filters injected by JS -->
+    <input type="text" class="search-box" id="search-box" placeholder="Search agency name…">
+    <span class="clear-filters" id="clear-filters">Clear all filters</span>
+  </div>
+</div>
+
+<main>
+
+  <section id="sec-kpi">
+    <div class="section-head">
+      <h2><span class="section-num">01</span> Portfolio snapshot</h2>
+      <span class="section-note" id="kpi-note">—</span>
+    </div>
+    <div class="kpi-row" id="kpi-row"></div>
+  </section>
+
+  <section id="sec-grid">
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Team Leaders <span class="ramp" style="margin-left:6px"><i style="background:var(--amber)"></i><i style="background:var(--orange)"></i><i style="background:var(--crimson)"></i></span></h3>
+          <span class="section-note" id="tl-count-note">—</span>
+        </div>
+        <div class="panel-body">
+          <div class="table-scroll">
+            <table id="tl-table">
+              <thead><tr>
+                <th data-key="tl">TL</th>
+                <th data-key="agencies" class="num">Agencies</th>
+                <th data-key="os" class="num">OS Overdue</th>
+                <th data-key="repay" class="num">Repayment</th>
+                <th data-key="recovery" class="num">Recovery</th>
+                <th data-key="fee" class="num">Total Fee</th>
+                <th data-key="feeRate" class="num">Fee Rate</th>
+              </tr></thead>
+              <tbody id="tl-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Agency ranking</h3>
+          <span class="section-note">click a column to sort</span>
+        </div>
+        <div class="panel-body">
+          <div class="table-scroll" style="max-height:420px;">
+            <table id="agency-table">
+              <thead><tr>
+                <th data-key="agency">Agency</th>
+                <th data-key="bucketList">Bucket</th>
+                <th data-key="tl">TL</th>
+                <th data-key="os" class="num">OS Overdue</th>
+                <th data-key="repay" class="num">Repayment</th>
+                <th data-key="recovery" class="num">Recovery</th>
+                <th data-key="fee" class="num">Fee</th>
+                <th data-key="feeRate" class="num">Fee Rate</th>
+              </tr></thead>
+              <tbody id="agency-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-mom">
+    <div class="section-head">
+      <h2><span class="section-num">02</span> Month-over-month</h2>
+    </div>
+    <div class="panel">
+      <div class="panel-body">
+        <div class="mom-controls">
+          <span class="filter-label">Compare</span>
+          <select id="mom-from"></select>
+          <span style="color:var(--muted-2)">→</span>
+          <select id="mom-to"></select>
+          <span class="filter-label" style="margin-left:14px">Group by</span>
+          <div class="toggle-group" id="mom-groupby">
+            <div class="toggle-btn active" data-g="tl">TL</div>
+            <div class="toggle-btn" data-g="agency">Agency</div>
+          </div>
+        </div>
+        <div class="table-scroll" style="max-height:380px;">
+          <table id="mom-table">
+            <thead><tr>
+              <th data-key="name">Name</th>
+              <th data-key="osFrom" class="num">OS (from)</th>
+              <th data-key="osTo" class="num">OS (to)</th>
+              <th data-key="osDelta" class="num">OS Δ%</th>
+              <th data-key="repayFrom" class="num">Repay (from)</th>
+              <th data-key="repayTo" class="num">Repay (to)</th>
+              <th data-key="repayDelta" class="num">Repay Δ%</th>
+              <th data-key="recFrom" class="num">Recovery (from)</th>
+              <th data-key="recTo" class="num">Recovery (to)</th>
+              <th data-key="recDelta" class="num">Recovery Δpp</th>
+            </tr></thead>
+            <tbody id="mom-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-detail">
+    <div class="section-head">
+      <h2><span class="section-num">03</span> Full detail</h2>
+      <span class="section-note" id="detail-count-note">—</span>
+    </div>
+    <div class="panel">
+      <div class="panel-body">
+        <div class="table-scroll" style="max-height:460px;">
+          <table id="detail-table">
+            <thead><tr>
+              <th data-key="period">Period</th>
+              <th data-key="agency">Agency</th>
+              <th data-key="bucket">Bucket</th>
+              <th data-key="grade">Grade</th>
+              <th data-key="tl">TL</th>
+              <th data-key="os" class="num">OS Overdue</th>
+              <th data-key="repay" class="num">Repayment</th>
+              <th data-key="recovery" class="num">Recovery</th>
+              <th data-key="fee" class="num">Fee</th>
+              <th data-key="feeRate" class="num">Fee Rate</th>
+            </tr></thead>
+            <tbody id="detail-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>Data persists in this browser. Upload new monthly exports anytime — matching rows are replaced, new ones appended.</span>
+  <span id="footer-rowcount">—</span>
+</footer>
+
+<script>
+/* ============ EMBEDDED BASE DATA ============ */
+const BASE_DATA = [{"period": "2026-05", "agency": "AGENT & CO", "bucket": "DLQ", "grade": "B", "tl": "v-mohamad.iqbal@traveloka.com", "os": 337441302.0, "repay": 237872066.0, "fee": 35680817.0, "booster": 0.0, "rate": 0.15000003}, {"period": "2026-05", "agency": "COLLECTIUS", "bucket": "DLQ", "grade": "B", "tl": "v-mohamad.iqbal@traveloka.com", "os": 298231699.0, "repay": 229132292.0, "fee": 34369867.0, "booster": 0.0, "rate": 0.150000101}, {"period": "2026-05", "agency": "COLLECTIUS", "bucket": "WO", "grade": "A", "tl": "v-lidya.nova@traveloka.com", "os": 811037474.0, "repay": 276545917.0, "fee": 124445670.0, "booster": 0.0, "rate": 0.450000027}, {"period": "2026-05", "agency": "COLMITRA", "bucket": "NPL", "grade": "C", "tl": "v-peni.rahman@traveloka.com", "os": 462752867.0, "repay": 158780136.0, "fee": 23023123.0, "booster": 0.0, "rate": 0.145000021}, {"period": "2026-05", "agency": "COLMITRA", "bucket": "WO", "grade": "B", "tl": "v-joko.purnomo@traveloka.com", "os": 1206451212.0, "repay": 468482849.0, "fee": 163969020.0, "booster": 0.0, "rate": 0.350000049}, {"period": "2026-05", "agency": "FATHANINDO", "bucket": "WO", "grade": "C", "tl": "v-muhammad.wahyudi@traveloka.com", "os": 289731626.0, "repay": 77149153.0, "fee": 15429831.0, "booster": 0.0, "rate": 0.200000005}, {"period": "2026-05", "agency": "FLOW", "bucket": "NPL", "grade": "A", "tl": "v-peni.rahman@traveloka.com", "os": 1178150183.0, "repay": 346351891.0, "fee": 121223200.0, "booster": 0.0, "rate": 0.35000011}, {"period": "2026-05", "agency": "FLOW", "bucket": "WO", "grade": "C", "tl": "v-muhammad.wahyudi@traveloka.com", "os": 738714602.0, "repay": 181556688.0, "fee": 36311331.0, "booster": 0.0, "rate": 0.199999964}, {"period": "2026-05", "agency": "HARADA", "bucket": "DLQ", "grade": "A", "tl": "v-mohamad.iqbal@traveloka.com", "os": 1575845153.0, "repay": 1042830782.0, "fee": 208566174.0, "booster": 0.0, "rate": 0.200000017}, {"period": "2026-05", "agency": "HARADA", "bucket": "NPL", "grade": "C", "tl": "v-peni.rahman@traveloka.com", "os": 223553663.0, "repay": 78766236.0, "fee": 11421103.0, "booster": 0.0, "rate": 0.144999985}, {"period": "2026-05", "agency": "HARADA", "bucket": "WO", "grade": "B", "tl": "v-muhammad.wahyudi@traveloka.com", "os": 1832331036.0, "repay": 447891221.0, "fee": 156761961.0, "booster": 0.0, "rate": 0.350000075}, {"period": "2026-05", "agency": "HTSS", "bucket": "WO", "grade": "B", "tl": "prabandari@traveloka.com", "os": 1067227704.0, "repay": 252703926.0, "fee": 88446392.0, "booster": 0.0, "rate": 0.350000071}, {"period": "2026-05", "agency": "MBA", "bucket": "WO", "grade": "C", "tl": "v-joko.purnomo@traveloka.com", "os": 200634964.0, "repay": 63861168.0, "fee": 12772234.0, "booster": 0.0, "rate": 0.200000006}, {"period": "2026-05", "agency": "MBS", "bucket": "WO", "grade": "C", "tl": "prabandari@traveloka.com", "os": 219986554.0, "repay": 88902601.0, "fee": 17780513.0, "booster": 0.0, "rate": 0.199999919}, {"period": "2026-05", "agency": "MORA", "bucket": "NPL", "grade": "B", "tl": "v-peni.rahman@traveloka.com", "os": 398125170.0, "repay": 116593671.0, "fee": 28565443.0, "booster": 0.0, "rate": 0.244999945}, {"period": "2026-05", "agency": "MORA", "bucket": "WO", "grade": "B", "tl": "v-joko.purnomo@traveloka.com", "os": 366123055.0, "repay": 124267698.0, "fee": 43493705.0, "booster": 0.0, "rate": 0.350000086}, {"period": "2026-05", "agency": "NALSAL", "bucket": "WO", "grade": "C", "tl": "v-joko.purnomo@traveloka.com", "os": 404853869.0, "repay": 121212462.0, "fee": 24242490.0, "booster": 0.0, "rate": 0.19999998}, {"period": "2026-05", "agency": "PEPPER", "bucket": "WO", "grade": "C", "tl": "prabandari@traveloka.com", "os": 221025806.0, "repay": 77947978.0, "fee": 15589593.0, "booster": 0.0, "rate": 0.199999967}, {"period": "2026-05", "agency": "POLARIS", "bucket": "DLQ", "grade": "A", "tl": "v-mohamad.iqbal@traveloka.com", "os": 1118414863.0, "repay": 835778529.0, "fee": 167155732.0, "booster": 0.0, "rate": 0.200000031}, {"period": "2026-05", "agency": "POLARIS", "bucket": "NPL", "grade": "B", "tl": "v-peni.rahman@traveloka.com", "os": 791674070.0, "repay": 268699225.0, "fee": 65831298.0, "booster": 0.0, "rate": 0.244999955}, {"period": "2026-05", "agency": "POLARIS", "bucket": "WO", "grade": "B", "tl": "v-muhammad.wahyudi@traveloka.com", "os": 1282120945.0, "repay": 389756536.0, "fee": 136414819.0, "booster": 0.0, "rate": 0.350000081}, {"period": "2026-05", "agency": "PRANATA", "bucket": "WO", "grade": "D", "tl": "v-lidya.nova@traveloka.com", "os": 178962187.0, "repay": 60316608.0, "fee": 9047492.0, "booster": 0.0, "rate": 0.150000013}, {"period": "2026-05", "agency": "REVINA", "bucket": "WO", "grade": "C", "tl": "v-lidya.nova@traveloka.com", "os": 416478277.0, "repay": 106806549.0, "fee": 21361306.0, "booster": 0.0, "rate": 0.199999964}, {"period": "2026-05", "agency": "REVINA", "bucket": "DLQ", "grade": "B", "tl": "v-mohamad.iqbal@traveloka.com", "os": 299316919.0, "repay": 204102010.0, "fee": 30615322.0, "booster": 0.0, "rate": 0.1500001}, {"period": "2026-05", "agency": "SELARAS", "bucket": "WO", "grade": "C", "tl": "v-joko.purnomo@traveloka.com", "os": 955586290.0, "repay": 269145990.0, "fee": 53829192.0, "booster": 0.0, "rate": 0.199999978}, {"period": "2026-05", "agency": "SELARAS", "bucket": "NPL", "grade": "C", "tl": "v-peni.rahman@traveloka.com", "os": 124440585.0, "repay": 59467188.0, "fee": 8622741.0, "booster": 0.0, "rate": 0.144999979}, {"period": "2026-05", "agency": "TELEKOL", "bucket": "WO", "grade": "B", "tl": "v-lidya.nova@traveloka.com", "os": 199708769.0, "repay": 94541067.0, "fee": 33089379.0, "booster": 0.0, "rate": 0.350000059}, {"period": "2026-05", "agency": "TELMARK", "bucket": "WO", "grade": "C", "tl": "v-lidya.nova@traveloka.com", "os": 118397695.0, "repay": 58443324.0, "fee": 11688662.0, "booster": 0.0, "rate": 0.199999952}, {"period": "2026-05", "agency": "TELMARK", "bucket": "NPL", "grade": "C", "tl": "v-peni.rahman@traveloka.com", "os": 192163188.0, "repay": 68444183.0, "fee": 9924408.0, "booster": 0.0, "rate": 0.145000021}, {"period": "2026-05", "agency": "TELMARK", "bucket": "DLQ", "grade": "B", "tl": "v-mohamad.iqbal@traveloka.com", "os": 811104144.0, "repay": 516585104.0, "fee": 77487797.0, "booster": 0.0, "rate": 0.150000061}, {"period": "2026-05", "agency": "TOBADIHON", "bucket": "NPL", "grade": "C", "tl": "v-peni.rahman@traveloka.com", "os": 623626508.0, "repay": 178108330.0, "fee": 25825710.0, "booster": 0.0, "rate": 0.145000012}, {"period": "2026-05", "agency": "TOBADIHON", "bucket": "DLQ", "grade": "A", "tl": "v-mohamad.iqbal@traveloka.com", "os": 1835927367.0, "repay": 1258994097.0, "fee": 251798794.0, "booster": 0.0, "rate": 0.19999998}, {"period": "2026-05", "agency": "TOBADIHON", "bucket": "WO", "grade": "B", "tl": "prabandari@traveloka.com", "os": 3180623545.0, "repay": 874281127.0, "fee": 305998452.0, "booster": 0.0, "rate": 0.350000066}, {"period": "2026-05", "agency": "VJR", "bucket": "WO", "grade": "C", "tl": "v-muhammad.wahyudi@traveloka.com", "os": 148735824.0, "repay": 45444650.0, "fee": 9088929.0, "booster": 0.0, "rate": 0.199999978}, {"period": "2026-05", "agency": "ZURIEL", "bucket": "WO", "grade": "C", "tl": "prabandari@traveloka.com", "os": 565613701.0, "repay": 128169643.0, "fee": 25633929.0, "booster": 0.0, "rate": 0.200000003}, {"period": "2026-04", "agency": "AGENT & CO", "bucket": "DLQ", "grade": "B", "tl": "v-mohamad.iqbal@traveloka.com", "os": 212453432.0, "repay": 125408119.0, "fee": 18811220.0, "booster": 0.0, "rate": 0.150000017}, {"period": "2026-04", "agency": "AGENT & CO", "bucket": "WO", "grade": "B", "tl": "v-prabandari.p@traveloka.com", "os": 287959140.0, "repay": 146777684.0, "fee": 51372195.0, "booster": 0.0, "rate": 0.350000038}, {"period": "2026-04", "agency": "COLLECTIUS", "bucket": "DLQ", "grade": "C", "tl": "v-mohamad.iqbal@traveloka.com", "os": 149407120.0, "repay": 101392323.0, "fee": 10139253.0, "booster": 0.0, "rate": 0.100000204}, {"period": "2026-04", "agency": "COLLECTIUS", "bucket": "WO", "grade": "A", "tl": "v-muhammad.wahyudi@traveloka.com", "os": 844305685.0, "repay": 316615696.0, "fee": 142477076.0, "booster": 0.0, "rate": 0.45000004}, {"period": "2026-04", "agency": "COLMITRA", "bucket": "NPL", "grade": "A", "tl": "v-peni.rahman@traveloka.com", "os": 773587014.0, "repay": 301701729.0, "fee": 105595627.0, "booster": 0.0, "rate": 0.350000072}, {"period": "2026-04", "agency": "COLMITRA", "bucket": "WO", "grade": "A", "tl": "v-joko.purnomo@traveloka.com", "os": 1226438643.0, "repay": 556726939.0, "fee": 250527152.0, "booster": 0.0, "rate": 0.450000053}, {"period": "2026-04", "agency": "FATHANINDO", "bucket": "WO", "grade": "C", "tl": "v-joko.purnomo@traveloka.com", "os": 217302076.0, "repay": 68252156.0, "fee": 13650431.0, "booster": 0.0, "rate": 0.199999997}, {"period": "2026-04", "agency": "FLOW", "bucket": "NPL", "grade": "B", "tl": "v-peni.rahman@traveloka.com", "os": 1609879153.0, "repay": 398021470.0, "fee": 97515263.0, "booster": 0.0, "rate": 0.245000007}, {"period": "2026-04", "agency": "FLOW", "bucket": "WO", "grade": "B", "tl": "v-prabandari.p@traveloka.com", "os": 815673935.0, "repay": 189740183.0, "fee": 66409074.0, "booster": 0.0, "rate": 0.350000052}, {"period": "2026-04", "agency": "HARADA", "bucket": "WO", "grade": "A", "tl": "v-muhammad.wahyudi@traveloka.com", "os": 1749228719.0, "repay": 429336536.0, "fee": 193201465.0, "booster": 0.0, "rate": 0.450000055}, {"period": "2026-04", "agency": "HARADA", "bucket": "DLQ", "grade": "A", "tl": "v-mohamad.iqbal@traveloka.com", "os": 1474264693.0, "repay": 1018717639.0, "fee": 203743519.0, "booster": 0.0, "rate": 0.199999991}, {"period": "2026-04", "agency": "HARADA", "bucket": "NPL", "grade": "A", "tl": "v-peni.rahman@traveloka.com", "os": 211412370.0, "repay": 58452153.0, "fee": 20458253.0, "booster": 0.0, "rate": 0.349999991}, {"period": "2026-04", "agency": "HTSS", "bucket": "WO", "grade": "B", "tl": "v-muhammad.wahyudi@traveloka.com", "os": 851095189.0, "repay": 203680653.0, "fee": 71288256.0, "booster": 0.0, "rate": 0.350000135}, {"period": "2026-04", "agency": "MBA", "bucket": "WO", "grade": "B", "tl": "v-joko.purnomo@traveloka.com", "os": 214302608.0, "repay": 67329483.0, "fee": 23565323.0, "booster": 0.0, "rate": 0.350000059}, {"period": "2026-04", "agency": "MBS", "bucket": "WO", "grade": "D", "tl": "v-lidya.nova@traveloka.com", "os": 201677978.0, "repay": 71546652.0, "fee": 10732005.0, "booster": 0.0, "rate": 0.150000101}, {"period": "2026-04", "agency": "MORA", "bucket": "WO", "grade": "C", "tl": "v-muhammad.wahyudi@traveloka.com", "os": 213467867.0, "repay": 49136130.0, "fee": 9827227.0, "booster": 0.0, "rate": 0.20000002}, {"period": "2026-04", "agency": "MORA", "bucket": "NPL", "grade": "C", "tl": "v-peni.rahman@traveloka.com", "os": 291703464.0, "repay": 86467680.0, "fee": 12537813.0, "booster": 0.0, "rate": 0.144999993}, {"period": "2026-04", "agency": "NALSAL", "bucket": "WO", "grade": "B", "tl": "v-prabandari.p@traveloka.com", "os": 465777850.0, "repay": 158063445.0, "fee": 55322234.0, "booster": 0.0, "rate": 0.350000179}, {"period": "2026-04", "agency": "PAP", "bucket": "WO", "grade": "C", "tl": "v-lidya.nova@traveloka.com", "os": 115978829.0, "repay": 27165013.0, "fee": 5433005.0, "booster": 0.0, "rate": 0.200000088}, {"period": "2026-04", "agency": "PEPPER", "bucket": "WO", "grade": "B", "tl": "v-lidya.nova@traveloka.com", "os": 221686246.0, "repay": 109817852.0, "fee": 38436263.0, "booster": 0.0, "rate": 0.350000135}, {"period": "2026-04", "agency": "POLARIS", "bucket": "NPL", "grade": "A", "tl": "v-peni.rahman@traveloka.com", "os": 724022798.0, "repay": 246909093.0, "fee": 86418200.0, "booster": 0.0, "rate": 0.350000071}, {"period": "2026-04", "agency": "POLARIS", "bucket": "DLQ", "grade": "A", "tl": "v-mohamad.iqbal@traveloka.com", "os": 1040148795.0, "repay": 757747576.0, "fee": 151549507.0, "booster": 0.0, "rate": 0.199999989}, {"period": "2026-04", "agency": "POLARIS", "bucket": "WO", "grade": "B", "tl": "v-muhammad.wahyudi@traveloka.com", "os": 1063002161.0, "repay": 377334819.0, "fee": 132067198.0, "booster": 0.0, "rate": 0.35000003}, {"period": "2026-04", "agency": "PRANATA", "bucket": "WO", "grade": "D", "tl": "v-lidya.nova@traveloka.com", "os": 244635574.0, "repay": 93672507.0, "fee": 14050879.0, "booster": 0.0, "rate": 0.150000031}, {"period": "2026-04", "agency": "REVINA", "bucket": "DLQ", "grade": "C", "tl": "v-mohamad.iqbal@traveloka.com", "os": 476902171.0, "repay": 255416713.0, "fee": 25541699.0, "booster": 0.0, "rate": 0.100000108}, {"period": "2026-04", "agency": "REVINA", "bucket": "WO", "grade": "B", "tl": "v-prabandari.p@traveloka.com", "os": 748837004.0, "repay": 197916159.0, "fee": 69270671.0, "booster": 0.0, "rate": 0.350000078}, {"period": "2026-04", "agency": "SELARAS", "bucket": "WO", "grade": "B", "tl": "v-prabandari.p@traveloka.com", "os": 1133202810.0, "repay": 330034307.0, "fee": 115512018.0, "booster": 0.0, "rate": 0.350000032}, {"period": "2026-04", "agency": "SELARAS", "bucket": "NPL", "grade": "C", "tl": "v-peni.rahman@traveloka.com", "os": 62733535.0, "repay": 27735621.0, "fee": 4021666.0, "booster": 0.0, "rate": 0.145000034}, {"period": "2026-04", "agency": "TELEKOL", "bucket": "WO", "grade": "B", "tl": "v-prabandari.p@traveloka.com", "os": 120919118.0, "repay": 68740659.0, "fee": 24059237.0, "booster": 0.0, "rate": 0.350000092}, {"period": "2026-04", "agency": "TELMARK", "bucket": "NPL", "grade": "C", "tl": "v-peni.rahman@traveloka.com", "os": 222291393.0, "repay": 66135463.0, "fee": 9589643.0, "booster": 0.0, "rate": 0.145000013}, {"period": "2026-04", "agency": "TELMARK", "bucket": "WO", "grade": "C", "tl": "v-lidya.nova@traveloka.com", "os": 81170405.0, "repay": 46093389.0, "fee": 9218674.0, "booster": 0.0, "rate": 0.199999918}, {"period": "2026-04", "agency": "TELMARK", "bucket": "DLQ", "grade": "B", "tl": "v-mohamad.iqbal@traveloka.com", "os": 799407152.0, "repay": 521065270.0, "fee": 78159849.0, "booster": 0.0, "rate": 0.150000112}, {"period": "2026-04", "agency": "TOBADIHON", "bucket": "DLQ", "grade": "A", "tl": "v-mohamad.iqbal@traveloka.com", "os": 2149085886.0, "repay": 1522975321.0, "fee": 304595045.0, "booster": 0.0, "rate": 0.199999987}, {"period": "2026-04", "agency": "TOBADIHON", "bucket": "NPL", "grade": "C", "tl": "v-peni.rahman@traveloka.com", "os": 868374974.0, "repay": 264019960.0, "fee": 38282901.0, "booster": 0.0, "rate": 0.145000026}, {"period": "2026-04", "agency": "TOBADIHON", "bucket": "WO", "grade": "B", "tl": "v-joko.purnomo@traveloka.com", "os": 3236846206.0, "repay": 900889037.0, "fee": 315311212.0, "booster": 0.0, "rate": 0.350000054}, {"period": "2026-04", "agency": "VJR", "bucket": "WO", "grade": "B", "tl": "v-joko.purnomo@traveloka.com", "os": 146969171.0, "repay": 62456776.0, "fee": 21859875.0, "booster": 0.0, "rate": 0.350000054}, {"period": "2026-04", "agency": "ZURIEL", "bucket": "WO", "grade": "C", "tl": "v-prabandari.p@traveloka.com", "os": 511988939.0, "repay": 91668145.0, "fee": 18333630.0, "booster": 0.0, "rate": 0.200000011}];
+
+/* ============ STORAGE ============ */
+const STORE_KEY = 'tl_ledger_uploaded_rows_v1';
+function rowKey(r){ return [r.period,r.agency,r.bucket,r.tl,r.grade].join('|'); }
+
+function loadAllData(){
+  let uploaded = [];
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) uploaded = JSON.parse(raw);
+  }catch(e){ uploaded = []; }
+  const map = new Map();
+  BASE_DATA.forEach(r => map.set(rowKey(r), r));
+  uploaded.forEach(r => map.set(rowKey(r), r)); // uploaded overrides/append
+  return Array.from(map.values()).map(enrich);
+}
+function enrich(r){
+  const recovery = r.os > 0 ? r.repay / r.os : 0;
+  const feeRate = r.repay > 0 ? r.fee / r.repay : (r.rate || 0);
+  return Object.assign({}, r, { recovery, feeRate: r.rate || feeRate });
+}
+function saveUploaded(rows){
+  // merge with any already stored, replacing on key match
+  let existing = [];
+  try{ existing = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); }catch(e){}
+  const map = new Map();
+  existing.forEach(r => map.set(rowKey(r), r));
+  rows.forEach(r => map.set(rowKey(r), r));
+  localStorage.setItem(STORE_KEY, JSON.stringify(Array.from(map.values())));
+}
+
+let DATA = loadAllData();
+
+/* ============ CSV PARSE / EXPORT ============ */
+function parseCSV(text){
+  const lines = text.replace(/\r/g,'').split('\n').filter(l => l.trim().length);
+  if(!lines.length) return [];
+  const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+  const colMap = {
+    'period':'period','agency name':'agency','bucket team':'bucket','grade':'grade',
+    'tl_email':'tl','os ovd amount':'os','repayment amount':'repay','total fee':'fee',
+    'booster fee':'booster','rate ratio':'rate'
+  };
+  const idx = {};
+  headers.forEach((h,i) => { if(colMap[h]) idx[colMap[h]] = i; });
+  const rows = [];
+  for(let i=1;i<lines.length;i++){
+    const cells = splitCSVLine(lines[i]);
+    if(cells.length < 2) continue;
+    const get = (k, num) => {
+      const v = idx[k] !== undefined ? cells[idx[k]] : (num ? '0' : '');
+      return num ? (parseFloat(v) || 0) : (v || '').trim();
+    };
+    rows.push({
+      period: get('period'), agency: get('agency'), bucket: get('bucket'),
+      grade: get('grade'), tl: get('tl'),
+      os: get('os', true), repay: get('repay', true),
+      fee: get('fee', true), booster: get('booster', true), rate: get('rate', true)
+    });
+  }
+  return rows;
+}
+function splitCSVLine(line){
+  const out = []; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c = line[i];
+    if(inQ){
+      if(c === '"' && line[i+1] === '"'){ cur+='"'; i++; }
+      else if(c === '"'){ inQ=false; }
+      else cur += c;
+    } else {
+      if(c === '"') inQ = true;
+      else if(c === ','){ out.push(cur); cur=''; }
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+function exportCSV(rows){
+  const headers = ['Period','Agency Name','Bucket Team','Grade','TL_email','Os Ovd Amount','Repayment Amount','Total Fee','Booster Fee','Rate Ratio'];
+  const lines = [headers.join(',')];
+  rows.forEach(r => {
+    lines.push([r.period, csvEscape(r.agency), r.bucket, r.grade, r.tl, r.os, r.repay, r.fee, r.booster, r.rate].join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'tl_ledger_filtered.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function csvEscape(v){
+  if(v == null) return '';
+  const s = String(v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+
+/* ============ FORMATTERS ============ */
+function fmtIDR(n){
+  const sign = n < 0 ? '-' : '';
+  n = Math.abs(n);
+  if(n >= 1e9) return sign + 'Rp ' + (n/1e9).toFixed(2) + ' M';
+  if(n >= 1e6) return sign + 'Rp ' + (n/1e6).toFixed(1) + ' Jt';
+  if(n >= 1e3) return sign + 'Rp ' + (n/1e3).toFixed(0) + ' Rb';
+  return sign + 'Rp ' + n.toFixed(0);
+}
+function fmtPct(n){ return (n*100).toFixed(1) + '%'; }
+function fmtPP(n){ return (n>=0?'+':'') + (n*100).toFixed(1) + ' pp'; }
+function fmtSignedPct(n){
+  if(!isFinite(n)) return '—';
+  return (n>=0?'+':'') + (n*100).toFixed(1) + '%';
+}
+function bucketTag(b){
+  const cls = b === 'DLQ' ? 'tag-dlq' : b === 'NPL' ? 'tag-npl' : 'tag-wo';
+  return '<span class="tag '+cls+'">'+b+'</span>';
+}
+function bucketColorVar(b){
+  return b === 'DLQ' ? 'var(--amber)' : b === 'NPL' ? 'var(--orange)' : 'var(--crimson)';
+}
+function shortTL(email){
+  return email.replace('@traveloka.com','').replace(/^v-/,'');
+}
+
+/* ============ FILTER STATE ============ */
+const FIELDS = [
+  {key:'period', label:'Period'},
+  {key:'tl', label:'TL'},
+  {key:'agency', label:'Agency'},
+  {key:'bucket', label:'Bucket'},
+  {key:'grade', label:'Grade'}
+];
+let filters = {}; // key -> Set of selected values (empty set = all)
+let searchText = '';
+
+function uniqueValues(key){
+  const s = new Set();
+  DATA.forEach(r => s.add(r[key]));
+  return Array.from(s).sort();
+}
+
+function buildFilterBar(){
+  const bar = document.getElementById('filterbar-inner');
+  const searchBox = document.getElementById('search-box');
+  const clearBtn = document.getElementById('clear-filters');
+  bar.querySelectorAll('.msel').forEach(el => el.remove());
+
+  FIELDS.forEach(f => {
+    if(!filters[f.key]) filters[f.key] = new Set();
+    const values = uniqueValues(f.key);
+    const wrap = document.createElement('div');
+    wrap.className = 'msel';
+    wrap.dataset.key = f.key;
+    const btn = document.createElement('div');
+    btn.className = 'msel-btn';
+    btn.innerHTML = '<span>'+f.label+'</span><span class="msel-count">All</span>';
+    const panel = document.createElement('div');
+    panel.className = 'msel-panel';
+    const allLink = document.createElement('span');
+    allLink.className = 'msel-all';
+    allLink.textContent = 'Select all / none';
+    allLink.onclick = (e) => {
+      e.stopPropagation();
+      const set = filters[f.key];
+      if(set.size === values.length){ set.clear(); }
+      else { values.forEach(v => set.add(v)); }
+      renderAll();
+    };
+    panel.appendChild(allLink);
+    values.forEach(v => {
+      const opt = document.createElement('label');
+      opt.className = 'msel-opt';
+      const disp = f.key === 'tl' ? shortTL(v) : v;
+      opt.innerHTML = '<input type="checkbox" value="'+v+'"> <span>'+disp+'</span>';
+      const cb = opt.querySelector('input');
+      cb.onchange = () => {
+        if(cb.checked) filters[f.key].add(v); else filters[f.key].delete(v);
+        renderAll();
+      };
+      panel.appendChild(opt);
+    });
+    wrap.appendChild(btn);
+    wrap.appendChild(panel);
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const wasOpen = wrap.classList.contains('open');
+      document.querySelectorAll('.msel.open').forEach(x => x.classList.remove('open'));
+      if(!wasOpen) wrap.classList.add('open');
+    };
+    bar.insertBefore(wrap, searchBox);
+  });
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.msel.open').forEach(x => x.classList.remove('open'));
+  });
+
+  searchBox.oninput = (e) => { searchText = e.target.value.trim().toLowerCase(); renderAll(); };
+  clearBtn.onclick = () => {
+    FIELDS.forEach(f => filters[f.key].clear());
+    searchText = '';
+    searchBox.value = '';
+    renderAll();
+  };
+}
+
+function refreshFilterButtons(){
+  document.querySelectorAll('.msel').forEach(wrap => {
+    const key = wrap.dataset.key;
+    const set = filters[key];
+    const countEl = wrap.querySelector('.msel-count');
+    const btn = wrap.querySelector('.msel-btn');
+    if(set.size === 0){ countEl.textContent = 'All'; btn.classList.remove('active-filter'); }
+    else { countEl.textContent = set.size + ' selected'; btn.classList.add('active-filter'); }
+    wrap.querySelectorAll('.msel-opt input').forEach(cb => { cb.checked = set.has(cb.value); });
+  });
+}
+
+function getFiltered(){
+  return DATA.filter(r => {
+    for(const f of FIELDS){
+      const set = filters[f.key];
+      if(set.size > 0 && !set.has(r[f.key])) return false;
+    }
+    if(searchText && !r.agency.toLowerCase().includes(searchText)) return false;
+    return true;
+  });
+}
+
+/* ============ AGGREGATION ============ */
+function aggregate(rows, keyFn){
+  const map = new Map();
+  rows.forEach(r => {
+    const k = keyFn(r);
+    if(!map.has(k)) map.set(k, {key:k, os:0, repay:0, fee:0, count:0, agencies:new Set(), buckets:new Set(), tl:r.tl, agency:r.agency});
+    const a = map.get(k);
+    a.os += r.os; a.repay += r.repay; a.fee += r.fee; a.count++;
+    a.agencies.add(r.agency); a.buckets.add(r.bucket);
+  });
+  return Array.from(map.values()).map(a => ({
+    ...a,
+    recovery: a.os > 0 ? a.repay / a.os : 0,
+    feeRate: a.repay > 0 ? a.fee / a.repay : 0,
+    agencyCount: a.agencies.size,
+    bucketList: Array.from(a.buckets).join(', ')
+  }));
+}
+
+/* ============ SORT STATE ============ */
+const sortState = { tl:{key:'os',dir:-1}, agency:{key:'os',dir:-1}, mom:{key:'osTo',dir:-1}, detail:{key:'period',dir:-1} };
+function sortRows(rows, state){
+  const {key, dir} = state;
+  return rows.slice().sort((a,b) => {
+    const va = a[key], vb = b[key];
+    if(typeof va === 'string') return va.localeCompare(vb) * dir;
+    return (va - vb) * dir;
+  });
+}
+function attachSortHandlers(tableId, stateKey, renderFn){
+  const table = document.getElementById(tableId);
+  table.querySelectorAll('th').forEach(th => {
+    th.onclick = () => {
+      const key = th.dataset.key;
+      const st = sortState[stateKey];
+      if(st.key === key) st.dir *= -1; else { st.key = key; st.dir = -1; }
+      renderFn();
+    };
+    th.querySelector('.arrow')?.remove();
+    if(th.dataset.key === sortState[stateKey].key){
+      th.classList.add('sorted');
+      const arrow = document.createElement('span');
+      arrow.className = 'arrow';
+      arrow.textContent = sortState[stateKey].dir === 1 ? '▲' : '▼';
+      th.appendChild(arrow);
+    } else {
+      th.classList.remove('sorted');
+    }
+  });
+}
+
+/* ============ RENDER: KPIs ============ */
+function renderKPIs(filtered){
+  const totalOS = filtered.reduce((s,r)=>s+r.os,0);
+  const totalRepay = filtered.reduce((s,r)=>s+r.repay,0);
+  const totalFee = filtered.reduce((s,r)=>s+r.fee,0);
+  const recovery = totalOS > 0 ? totalRepay/totalOS : 0;
+  const feeRate = totalRepay > 0 ? totalFee/totalRepay : 0;
+  const cards = [
+    {label:'OS Overdue', value:fmtIDR(totalOS), sub:filtered.length+' claim rows', accent:'var(--muted-2)'},
+    {label:'Repayment collected', value:fmtIDR(totalRepay), sub:'across selected filters', accent:'var(--teal)'},
+    {label:'Recovery rate', value:fmtPct(recovery), sub:'repayment ÷ OS overdue', accent:'var(--teal)'},
+    {label:'Total fee (cost)', value:fmtIDR(totalFee), sub:'paid to third-party agencies', accent:'var(--crimson)'},
+    {label:'Blended fee rate', value:fmtPct(feeRate), sub:'fee ÷ repayment', accent:'var(--orange)'}
+  ];
+  document.getElementById('kpi-row').innerHTML = cards.map(c =>
+    `<div class="kpi-card" style="--kpi-accent:${c.accent}">
+       <div class="kpi-label">${c.label}</div>
+       <div class="kpi-value">${c.value}</div>
+       <div class="kpi-sub">${c.sub}</div>
+     </div>`).join('');
+  const periods = Array.from(new Set(filtered.map(r=>r.period))).sort();
+  document.getElementById('kpi-note').textContent = periods.length ? periods.join(' · ') : 'no data';
+}
+
+/* ============ RENDER: TL table ============ */
+function renderTL(filtered){
+  let rows = aggregate(filtered, r => r.tl);
+  rows = sortRows(rows, sortState.tl);
+  const maxOS = Math.max(1, ...rows.map(r=>r.os));
+  document.getElementById('tl-tbody').innerHTML = rows.map(r => `
+    <tr class="data-row">
+      <td>${shortTL(r.key)}<div class="bar-track" style="margin-top:5px;width:90px;"><div class="bar-fill" style="width:${(r.os/maxOS*100).toFixed(0)}%"></div></div></td>
+      <td class="num">${r.agencyCount}</td>
+      <td class="num mono">${fmtIDR(r.os)}</td>
+      <td class="num mono">${fmtIDR(r.repay)}</td>
+      <td class="num mono ${r.recovery>=0.3?'rate-good':''}">${fmtPct(r.recovery)}</td>
+      <td class="num mono">${fmtIDR(r.fee)}</td>
+      <td class="num mono">${fmtPct(r.feeRate)}</td>
+    </tr>`).join('') || emptyRow(7);
+  document.getElementById('tl-count-note').textContent = rows.length + ' TL' + (rows.length!==1?'s':'');
+  attachSortHandlers('tl-table','tl', () => renderTL(getFiltered()));
+}
+
+/* ============ RENDER: Agency table ============ */
+function renderAgency(filtered){
+  let rows = aggregate(filtered, r => r.agency+'|'+r.bucket);
+  rows = rows.map(r => ({...r, tl: DATA.find(d=>d.agency===r.agency && r.buckets.has(d.bucket))?.tl || r.tl}));
+  rows = sortRows(rows, sortState.agency);
+  document.getElementById('agency-tbody').innerHTML = rows.map(r => {
+    const bucket = Array.from(r.buckets)[0];
+    return `<tr class="data-row" style="--row-accent:${bucketColorVar(bucket)}">
+      <td>${r.agency}</td>
+      <td>${bucketTag(bucket)}</td>
+      <td>${shortTL(r.tl)}</td>
+      <td class="num mono">${fmtIDR(r.os)}</td>
+      <td class="num mono">${fmtIDR(r.repay)}</td>
+      <td class="num mono ${r.recovery>=0.3?'rate-good':r.recovery<0.15?'rate-bad':''}">${fmtPct(r.recovery)}</td>
+      <td class="num mono">${fmtIDR(r.fee)}</td>
+      <td class="num mono">${fmtPct(r.feeRate)}</td>
+    </tr>`;
+  }).join('') || emptyRow(8);
+  attachSortHandlers('agency-table','agency', () => renderAgency(getFiltered()));
+}
+
+/* ============ RENDER: MoM ============ */
+let momGroupBy = 'tl';
+function populateMomSelectors(){
+  const periods = Array.from(new Set(DATA.map(r=>r.period))).sort();
+  const fromSel = document.getElementById('mom-from');
+  const toSel = document.getElementById('mom-to');
+  fromSel.innerHTML = periods.map(p=>`<option value="${p}">${p}</option>`).join('');
+  toSel.innerHTML = periods.map(p=>`<option value="${p}">${p}</option>`).join('');
+  if(periods.length >= 2){ fromSel.value = periods[periods.length-2]; toSel.value = periods[periods.length-1]; }
+  fromSel.onchange = () => renderMoM(getFiltered());
+  toSel.onchange = () => renderMoM(getFiltered());
+  document.querySelectorAll('#mom-groupby .toggle-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('#mom-groupby .toggle-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      momGroupBy = btn.dataset.g;
+      renderMoM(getFiltered());
+    };
+  });
+}
+function renderMoM(filtered){
+  const from = document.getElementById('mom-from').value;
+  const to = document.getElementById('mom-to').value;
+  const rowsFrom = aggregate(filtered.filter(r=>r.period===from), r => r[momGroupBy]);
+  const rowsTo = aggregate(filtered.filter(r=>r.period===to), r => r[momGroupBy]);
+  const names = new Set([...rowsFrom.map(r=>r.key), ...rowsTo.map(r=>r.key)]);
+  let merged = Array.from(names).map(name => {
+    const f = rowsFrom.find(r=>r.key===name) || {os:0,repay:0,fee:0,recovery:0};
+    const t = rowsTo.find(r=>r.key===name) || {os:0,repay:0,fee:0,recovery:0};
+    return {
+      name: momGroupBy==='tl' ? shortTL(name) : name,
+      osFrom:f.os, osTo:t.os, osDelta: f.os>0 ? (t.os-f.os)/f.os : (t.os>0?Infinity:0),
+      repayFrom:f.repay, repayTo:t.repay, repayDelta: f.repay>0 ? (t.repay-f.repay)/f.repay : (t.repay>0?Infinity:0),
+      recFrom:f.recovery, recTo:t.recovery, recDelta: t.recovery-f.recovery
+    };
+  });
+  merged = sortRows(merged, sortState.mom);
+  document.getElementById('mom-tbody').innerHTML = merged.map(r => `
+    <tr class="data-row">
+      <td>${r.name}</td>
+      <td class="num mono">${fmtIDR(r.osFrom)}</td>
+      <td class="num mono">${fmtIDR(r.osTo)}</td>
+      <td class="num mono ${deltaClass(r.osDelta)}">${fmtSignedPct(r.osDelta)}</td>
+      <td class="num mono">${fmtIDR(r.repayFrom)}</td>
+      <td class="num mono">${fmtIDR(r.repayTo)}</td>
+      <td class="num mono ${deltaClass(-r.repayDelta)}">${fmtSignedPct(r.repayDelta)}</td>
+      <td class="num mono">${fmtPct(r.recFrom)}</td>
+      <td class="num mono">${fmtPct(r.recTo)}</td>
+      <td class="num mono ${deltaClass(-r.recDelta)}">${fmtPP(r.recDelta)}</td>
+    </tr>`).join('') || emptyRow(10);
+  attachSortHandlers('mom-table','mom', () => renderMoM(getFiltered()));
+}
+function deltaClass(v){
+  if(!isFinite(v) || Math.abs(v) < 0.001) return 'delta-flat';
+  return v > 0 ? 'delta-up' : 'delta-down';
+}
+
+/* ============ RENDER: Detail ============ */
+function renderDetail(filtered){
+  let rows = sortRows(filtered, sortState.detail);
+  document.getElementById('detail-tbody').innerHTML = rows.map(r => `
+    <tr class="data-row" style="--row-accent:${bucketColorVar(r.bucket)}">
+      <td class="mono">${r.period}</td>
+      <td>${r.agency}</td>
+      <td>${bucketTag(r.bucket)}</td>
+      <td class="mono">${r.grade}</td>
+      <td>${shortTL(r.tl)}</td>
+      <td class="num mono">${fmtIDR(r.os)}</td>
+      <td class="num mono">${fmtIDR(r.repay)}</td>
+      <td class="num mono">${fmtPct(r.recovery)}</td>
+      <td class="num mono">${fmtIDR(r.fee)}</td>
+      <td class="num mono">${fmtPct(r.feeRate)}</td>
+    </tr>`).join('') || emptyRow(10);
+  document.getElementById('detail-count-note').textContent = rows.length + ' rows';
+  attachSortHandlers('detail-table','detail', () => renderDetail(getFiltered()));
+}
+
+function emptyRow(colspan){
+  return `<tr><td colspan="${colspan}"><div class="empty-state">
+    <span class="ramp"><i style="background:var(--amber)"></i><i style="background:var(--orange)"></i><i style="background:var(--crimson)"></i></span>
+    No rows match the current filters.
+  </div></td></tr>`;
+}
+
+/* ============ MASTER RENDER ============ */
+function renderAll(){
+  refreshFilterButtons();
+  const filtered = getFiltered();
+  renderKPIs(filtered);
+  renderTL(filtered);
+  renderAgency(filtered);
+  renderMoM(filtered);
+  renderDetail(filtered);
+  document.getElementById('footer-rowcount').textContent = DATA.length + ' total rows loaded · ' + filtered.length + ' shown';
+}
+
+/* ============ UPLOAD / EXPORT / RESET ============ */
+document.getElementById('btn-upload').onclick = () => document.getElementById('file-input').click();
+document.getElementById('file-input').onchange = async (e) => {
+  const files = Array.from(e.target.files);
+  if(!files.length) return;
+  let allNew = [];
+  for(const file of files){
+    const text = await file.text();
+    allNew = allNew.concat(parseCSV(text));
+  }
+  if(allNew.length){
+    saveUploaded(allNew);
+    DATA = loadAllData();
+    buildFilterBar();
+    populateMomSelectors();
+    renderAll();
+    alert('Loaded ' + allNew.length + ' rows. Matching existing rows were updated, new ones appended.');
+  }
+  e.target.value = '';
+};
+document.getElementById('btn-export').onclick = () => exportCSV(getFiltered());
+document.getElementById('btn-reset').onclick = () => {
+  if(confirm('This clears any uploaded/appended data and keeps only the original file. Continue?')){
+    localStorage.removeItem(STORE_KEY);
+    DATA = loadAllData();
+    buildFilterBar();
+    populateMomSelectors();
+    renderAll();
+  }
+};
+
+/* ============ INIT ============ */
+buildFilterBar();
+populateMomSelectors();
+renderAll();
+</script>
+</body>
+</html>
